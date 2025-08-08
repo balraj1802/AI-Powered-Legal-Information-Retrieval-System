@@ -26,8 +26,8 @@ This project is a legal clause interpreter that uses a self-correcting query pip
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/Chirag1616/Legal-clause-interpreter.git](https://github.com/balraj1802/AI-Powered-Legal-Information-Retrieval-System.git)
-    cd Legal-clause-interpreter
+    git clone [https://github.com/balraj1802/AI-Powered-Legal-Information-Retrieval-System.git](https://github.com/balraj1802/AI-Powered-Legal-Information-Retrieval-System.git)
+    cd AI-Powered-Legal-Information-Retrieval-System
     ```
 2.  **Install dependencies:** The project requires a number of libraries. It's recommended to set up a virtual environment.
     ```bash
