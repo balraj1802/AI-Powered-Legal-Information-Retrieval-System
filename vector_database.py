@@ -1,51 +1,49 @@
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+from langchain_community.document_loaders import PDFPlumberLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_ollama import OllamaEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
-## Uncomment the following files if you're not using pipenv as your virtual environment manager
-#from dotenv import load_dotenv, find_dotenv
-#load_dotenv(find_dotenv())
-
-
-# Step 1: Load raw PDF(s)
-DATA_PATH="pdfs/"
+# Step 1: Upload & Load raw PDF(s)
+pdfs_directory = 'pdfs/'
 
 def upload_pdf(file):
-    with open(pdfs_directory + file.name, "wb") as f:
+    with open(os.path.join(pdfs_directory, file.name), "wb") as f:
         f.write(file.getbuffer())
 
-def load_pdf_files(data):
-    loader = DirectoryLoader(data,
-                             glob='*.pdf',
-                             loader_cls=PyPDFLoader)
-    
-    documents=loader.load()
+def load_pdf(file_path):
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"PDF file not found: {file_path}")
+    loader = PDFPlumberLoader(file_path)
+    documents = loader.load()
     return documents
 
-documents=load_pdf_files(data=DATA_PATH)
-#print("Length of PDF pages: ", len(documents))
-
+file_path = os.getenv("PDF_FILE_PATH", "universal_declaration_of_human_rights.pdf")
+documents = load_pdf(file_path)
 
 # Step 2: Create Chunks
-def create_chunks(extracted_data):
-    text_splitter=RecursiveCharacterTextSplitter(chunk_size=500,
-                                                 chunk_overlap=50)
-    text_chunks=text_splitter.split_documents(extracted_data)
+def create_chunks(documents): 
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        add_start_index=True
+    )
+    text_chunks = text_splitter.split_documents(documents)
     return text_chunks
 
-text_chunks=create_chunks(extracted_data=documents)
-#print("Length of Text Chunks: ", len(text_chunks))
+text_chunks = create_chunks(documents)
 
-# Step 3: Create Vector Embeddings 
-
+# Step 3: Setup Embeddings Model (Use DeepSeek R1 with Ollama)
 def get_embedding_model():
-    embedding_model=HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    return embedding_model
+    # You can switch to OllamaEmbeddings if needed
+    # return OllamaEmbeddings(model=ollama_model_name)
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-embedding_model=get_embedding_model()
-
-# Step 4: Store embeddings in FAISS
-DB_FAISS_PATH="vectorstore/db_faiss"
-faiss_db=FAISS.from_documents(text_chunks, embedding_model)
-faiss_db.save_local(DB_FAISS_PATH)
+# Step 4: Index Documents
+FAISS_DB_PATH = os.getenv("FAISS_DB_PATH", "vectorstore/db_faiss")
+faiss_db = FAISS.from_documents(text_chunks, get_embedding_model())
+faiss_db.save_local(FAISS_DB_PATH)
